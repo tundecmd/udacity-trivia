@@ -1,3 +1,4 @@
+from ast import If
 from calendar import c
 from crypt import methods
 from hashlib import new
@@ -213,27 +214,29 @@ def create_app(test_config=None):
         previous_questions = request.get_json().get('previous_questions')
         quiz_category = request.get_json().get('quiz_category')
 
-        if previous_questions is None or quiz_category is None:
+        modelObject = request.get_json()
+        previous_questions = modelObject.get("previous_questions")
+        if previous_questions is None:
             abort(400)
+        if quiz_category is None:
+            abort(400)
+        
         if quiz_category["id"] == 0:
             category_questions = [question.format()
                                   for question in Question.query.all()]
         else:
-            category_questions = [
-                question.format() for question in Question.query.filter(
-                    Question.category == quiz_category['id']).all()]
+            category_questions = [question.format() for question in Question.query.filter(Question.category == quiz_category["id"]).all()]
 
-        while True:
+        for question in category_questions:
             random_question = random.choice(category_questions)
-            if random_question['id'] not in previous_questions:
+            question = random_question
+            if question["id"] not in previous_questions:
                 break
-            else:
-                return jsonify({
-                    "question": None
-                })
+            if question["id"] in previous_questions:
+                return jsonify({"question": None})
 
         return jsonify({
-            "question": random_question
+            "question": question
         }), 200
 
     @app.route('/*',
